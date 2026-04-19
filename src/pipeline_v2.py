@@ -1,17 +1,12 @@
-
 import requests, json, time, re, os
 from bs4 import BeautifulSoup
 import trafilatura
 from google import genai
 from google.colab import userdata
 
-# ============================================================
-# CONFIG
-# ============================================================
 GEMINI_API_KEY = userdata.get("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
 OUTPUT_PATH = "/content/vietnamese-dialect-system/data/processed/dialect_words.json"
-
 HEADERS = {"User-Agent": "Mozilla/5.0 (research-bot; dialect-preservation-project)"}
 
 SOURCES = {
@@ -27,19 +22,14 @@ SOURCES = {
         "confidence": 0.7,
     },
     "xomaonguyen_blog": {
-        "urls": [
-            "http://xomaonguyen.blogspot.com/2014/09/tu-ien-tieng-nghe-tinh-tu-en-zvan-van.html",
-        ],
+        "urls": ["http://xomaonguyen.blogspot.com/2014/09/tu-ien-tieng-nghe-tinh-tu-en-zvan-van.html"],
         "province_hint": "Nghệ An",
         "region_group": "Nghệ Tĩnh",
         "verified_by": "cong_dong_online",
         "confidence": 0.65,
     },
     "baonghean": {
-        "urls": [
-            "https://baonghean.vn/van-hoa",
-            "https://baonghean.vn/xa-hoi",
-        ],
+        "urls": ["https://baonghean.vn/van-hoa", "https://baonghean.vn/xa-hoi"],
         "province_hint": "Nghệ An",
         "region_group": "Nghệ Tĩnh",
         "verified_by": "cong_dong_online",
@@ -61,46 +51,35 @@ SOURCES = {
     },
 }
 
-EXTRACT_PROMPT_V2 = """Bạn là chuyên gia ngôn ngữ học phương ngữ Việt Nam Bắc Trung Bộ.
+EXTRACT_PROMPT_V2 = (
+    "Bạn là chuyên gia ngôn ngữ học phương ngữ Việt Nam Bắc Trung Bộ.\n\n"
+    "Từ đoạn văn bản dưới đây, hãy trích xuất các từ phương ngữ theo tiêu chí NGHIÊM NGẶT:\n\n"
+    "TIÊU CHÍ CHẤP NHẬN:\n"
+    "- Từ phương ngữ phải KHÁC RÕ RÀNG với từ phổ thông\n"
+    "- Phải là TỪ ĐƠN hoặc TỪ GHÉP ngắn (tối đa 3 âm tiết)\n"
+    "- Phải thuộc vùng Bắc Trung Bộ: Thanh Hóa, Nghệ An, Hà Tĩnh, Quảng Bình, Quảng Trị, Huế\n\n"
+    "TIÊU CHÍ LOẠI Bỏ:\n"
+    "- Từ phổ thông bình thường\n"
+    "- Câu dài hơn 3 âm tiết\n"
+    "- Từ mà word == standard_form\n"
+    "- Từ không rõ nghĩa\n\n"
+    "Với mỗi từ hợp lệ, trả về JSON với đúng các trường sau:\n"
+    '{{"word": "từ phương ngữ (viết thường)", '
+    '"standard_form": "từ phổ thông", '
+    '"meaning": "giải thích nghĩa ít nhất 10 ký tự", '
+    '"word_type": "từ_vựng hoặc ngữ_âm hoặc thành_ngữ", '
+    '"example_sentence": "câu ví dụ nếu có, nếu không để chuỗi rỗng", '
+    '"standard_sentence": "bản dịch nếu có, nếu không để chuỗi rỗng"}}\n\n'
+    "Quy tắc word_type:\n"
+    "- từ_vựng: nghĩa khác hoàn toàn (tru=trâu, mô=đâu)\n"
+    "- ngữ_âm: biến âm theo vùng (ngá=ngứa, trấy=trái)\n"
+    "- thành_ngữ: cụm cố định 2-3 âm tiết\n\n"
+    "Nếu không tìm thấy từ nào, trả về [].\n"
+    "CHỂ trả về JSON array, không giải thích, không markdown.\n\n"
+    "VĂN BẢN:\n{text}"
+)
 
-Từ đoạn văn bản dưới đây, hãy trích xuất các từ phương ngữ theo tiêu chí NGHIÊM NGẶT:
-
-TIÊU CHÍ CHẤP NHẬN:
-- Từ phương ngữ phải KHÁC RÕ RÀNG với từ phổ thông (không chỉ khác thanh điệu nhẹ)
-- Phải là TỪ ĐƠN hoặc TỪ GHÉP ngắn (tối đa 3 âm tiết)
-- Phải thuộc vùng Bắc Trung Bộ: Thanh Hóa, Nghệ An, Hà Tĩnh, Quảng Bình, Quảng Trị, Huế
-
-TIÊU CHÍ LOẠI BỎ:
-- Từ phổ thông bình thường
-- Câu dài hơn 3 âm tiết
-- Từ mà word == standard_form
-- Từ không rõ nghĩa
-
-Với mỗi từ hợp lệ, trả về JSON với đúng các trường sau:
-{{
-  "word": "từ phương ngữ (viết thường)",
-  "standard_form": "từ phổ thông tương đương",
-  "meaning": "giải thích nghĩa cụ thể, ít nhất 10 ký tự",
-  "word_type": "từ_vựng hoặc ngữ_âm hoặc thành_ngữ",
-  "example_sentence": "câu ví dụ bằng phương ngữ nếu có, nếu không thì để chuỗi rỗng",
-  "standard_sentence": "câu ví dụ dịch sang phổ thông nếu có, nếu không thì để chuỗi rỗng"
-}}
-
-Quy tắc word_type:
-- từ_vựng: nghĩa khác hoàn toàn (tru=trâu, mô=đâu)
-- ngữ_âm: biến âm theo vùng (ngá=ngứa, trấy=trái)
-- thành_ngữ: cụm cố định 2-3 âm tiết
-
-Nếu không tìm thấy từ nào, trả về [].
-CHỈ trả về JSON array, không giải thích, không markdown.
-
-VĂN BẢN:
-{text}"""
-
-# ============================================================
-# FUNCTIONS
-# ============================================================
-def crawl_url(url: str) -> str:
+def crawl_url(url):
     try:
         downloaded = trafilatura.fetch_url(url)
         if downloaded:
@@ -109,6 +88,7 @@ def crawl_url(url: str) -> str:
                 return text
         resp = requests.get(url, headers=HEADERS, timeout=10)
         resp.encoding = "utf-8"
+        from bs4 import BeautifulSoup
         soup = BeautifulSoup(resp.text, "html.parser")
         for tag in soup(["script", "style", "nav", "footer", "header"]):
             tag.decompose()
@@ -117,8 +97,7 @@ def crawl_url(url: str) -> str:
         print(f"  Lỗi crawl {url}: {e}")
         return ""
 
-
-def extract_words_v2(text: str, max_chars: int = 3000) -> list:
+def extract_words_v2(text, max_chars=3000):
     text = text[:max_chars]
     models = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.0-flash"]
     for model in models:
@@ -144,11 +123,10 @@ def extract_words_v2(text: str, max_chars: int = 3000) -> list:
                 else:
                     print(f"  Lỗi: {e}")
                     return []
-    print("  Hết quota hôm nay — dừng lại, chạy tiếp ngày mai")
-    return []
+    print("  Hết quota hôm nay — dừng lại")
+    return None
 
-
-def deduplicate(entries: list) -> tuple[list, int]:
+def deduplicate(entries):
     seen = {}
     for entry in entries:
         key = entry["word"].strip().lower()
@@ -156,133 +134,88 @@ def deduplicate(entries: list) -> tuple[list, int]:
             seen[key] = entry
     return list(seen.values()), len(entries) - len(seen)
 
-
-def validate_entry(entry: dict) -> tuple[bool, list[str]]:
-    REQUIRED = [
-        "word", "standard_form", "province", "region_group", "word_type",
-        "meaning", "source", "verified_by", "confidence", "needs_verification"
-    ]
-    PROVINCES     = ["Thanh Hóa", "Nghệ An", "Hà Tĩnh", "Quảng Bình", "Quảng Trị", "Thừa Thiên Huế"]
-    REGION_GROUPS = ["Thanh Hóa", "Nghệ Tĩnh", "Bình Trị Thiên"]
-    WORD_TYPES    = ["từ_vựng", "ngữ_âm", "thành_ngữ"]
-    VERIFIED_BY   = ["sach_hoc_thuat", "luan_van", "cong_dong_online", "da_nguon"]
-
+def validate_entry(entry):
+    REQUIRED = ["word","standard_form","province","region_group","word_type",
+                "meaning","source","verified_by","confidence","needs_verification"]
+    PROVINCES = ["Thanh Hóa","Nghệ An","Hà Tĩnh","Quảng Bình","Quảng Trị","Thừa Thiên Huế"]
+    REGION_GROUPS = ["Thanh Hóa","Nghệ Tĩnh","Bình Trị Thiên"]
+    WORD_TYPES = ["từ_vựng","ngữ_âm","thành_ngữ"]
+    VERIFIED_BY = ["sach_hoc_thuat","luan_van","cong_dong_online","da_nguon"]
     errors = []
     for field in REQUIRED:
         if field not in entry or entry[field] in [None, ""]:
             errors.append(f"Thiếu: {field}")
-    if errors:
-        return False, errors
-    if entry["province"] not in PROVINCES:
-        errors.append(f"province không hợp lệ: {entry['province']}")
-    if entry["region_group"] not in REGION_GROUPS:
-        errors.append(f"region_group không hợp lệ")
-    if entry["word_type"] not in WORD_TYPES:
-        errors.append(f"word_type không hợp lệ: {entry['word_type']}")
-    if entry["verified_by"] not in VERIFIED_BY:
-        errors.append(f"verified_by không hợp lệ")
-    if not (0.0 <= float(entry["confidence"]) <= 1.0):
-        errors.append("confidence phải 0.0–1.0")
-    if not isinstance(entry["needs_verification"], bool):
-        errors.append("needs_verification phải True/False")
+    if errors: return False, errors
+    if entry["province"] not in PROVINCES: errors.append("province không hợp lệ")
+    if entry["region_group"] not in REGION_GROUPS: errors.append("region_group không hợp lệ")
+    if entry["word_type"] not in WORD_TYPES: errors.append("word_type không hợp lệ")
+    if entry["verified_by"] not in VERIFIED_BY: errors.append("verified_by không hợp lệ")
+    if not (0.0 <= float(entry["confidence"]) <= 1.0): errors.append("confidence không hợp lệ")
+    if not isinstance(entry["needs_verification"], bool): errors.append("needs_verification phải bool")
     return len(errors) == 0, errors
 
-
-def review_and_save(raw_entries: list, output_path: str) -> list:
-    print(f"Tổng raw entries: {len(raw_entries)}")
-
-    # Lọc rỗng
-    filtered = []
-    for e in raw_entries:
-        if (len(e.get("word","")) >= 1
+def review_and_save(raw_entries, output_path=OUTPUT_PATH):
+    print(f"Tổng raw: {len(raw_entries)}")
+    filtered = [e for e in raw_entries
+                if len(e.get("word","")) >= 1
                 and len(e.get("standard_form","")) >= 1
                 and len(e.get("meaning","")) >= 3
-                and e.get("word","").lower() != e.get("standard_form","").lower()):
-            filtered.append(e)
-    print(f"Sau lọc: {len(filtered)} ({len(raw_entries)-len(filtered)} bị loại)")
-
-    # Deduplicate
-    deduped, n_dupes = deduplicate(filtered)
-    print(f"Sau deduplicate: {len(deduped)} ({n_dupes} trùng)")
-
-    # Điền optional fields
+                and e.get("word","").lower() != e.get("standard_form","").lower()]
+    print(f"Sau lọc: {len(filtered)} ({len(raw_entries)-len(filtered)} loại)")
+    deduped, n = deduplicate(filtered)
+    print(f"Sau deduplicate: {len(deduped)} ({n} trùng)")
     for e in deduped:
         e.setdefault("example_sentence", "")
         e.setdefault("standard_sentence", "")
         e.setdefault("source_page", "")
         e.setdefault("word_type", "từ_vựng")
-
-    # Validate
-    valid, invalid = [], []
-    for e in deduped:
-        ok, errs = validate_entry(e)
-        if ok:
-            valid.append(e)
-        else:
-            invalid.append({"entry": e, "errors": errs})
-
-    # Load existing data nếu có
+    valid = [e for e in deduped if validate_entry(e)[0]]
+    print(f"Validate passed: {len(valid)}")
     existing = []
     if os.path.exists(output_path):
         with open(output_path, encoding="utf-8") as f:
             existing = json.load(f)
-
-    # Gộp với existing, deduplicate lại
-    combined, n_dup2 = deduplicate(existing + valid)
-    print(f"Validate passed: {len(valid)} | Failed: {len(invalid)}")
-    print(f"Gộp với existing ({len(existing)}) → tổng: {len(combined)}")
-
-    # Phân bố tỉnh
+    combined, _ = deduplicate(existing + valid)
     province_count = {}
-    has_example = 0
     for e in combined:
-        p = e.get("province", "unknown")
+        p = e.get("province","unknown")
         province_count[p] = province_count.get(p, 0) + 1
-        if e.get("example_sentence"):
-            has_example += 1
-    print("\nPhân bố theo tỉnh:")
-    for p, count in sorted(province_count.items(), key=lambda x: -x[1]):
-        bar = "█" * (count // 5 + 1)
-        print(f"  {p:<22} {count:>3}  {bar}")
-    print(f"\nCó câu ví dụ: {has_example}/{len(combined)}")
-    print(f"Cần xác minh: {sum(1 for e in combined if e.get('needs_verification'))}/{len(combined)}")
-
-    # Lưu
+    print(f"Tổng sau gộp với existing: {len(combined)}")
+    print("Phân bố tỉnh:")
+    for p, c in sorted(province_count.items(), key=lambda x: -x[1]):
+        print(f"  {p:<22} {c:>3}  {'█'*(c//5+1)}")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(combined, f, ensure_ascii=False, indent=2)
     print(f"\nĐã lưu {len(combined)} từ → {output_path}")
     return combined
 
-
-def run_pipeline_v2(sources: dict, delay: float = 3.0) -> list:
+def run_pipeline_v2(sources=SOURCES, delay=3.0):
     raw_entries = []
     for source_name, config in sources.items():
-        print(f"\n{\'=\'*50}")
-        print(f"Nguồn: {source_name}")
-        print(f"{\'=\'*50}")
+        print(f"\n== Nguồn: {source_name} ==")
         for url in config["urls"]:
-            print(f"\n  Crawling: {url}")
+            print(f"  Crawling: {url}")
             text = crawl_url(url)
             if not text:
-                print("  Không lấy được nội dung, bỏ qua")
+                print("  Không lấy được nội dung")
                 continue
-            print(f"  Lấy được {len(text)} ký tự")
-            chunks = [text[i:i+3000] for i in range(0, min(len(text), 9000), 3000)]
+            print(f"  {len(text)} ký tự")
+            chunks = [text[i:i+3000] for i in range(0, min(len(text),9000), 3000)]
             for i, chunk in enumerate(chunks):
                 print(f"  Chunk {i+1}/{len(chunks)}...")
                 words = extract_words_v2(chunk)
                 if words is None:
-                    return raw_entries  # hết quota, dừng hẳn
+                    print("  Dừng pipeline — hết quota")
+                    return raw_entries
                 for w in words:
-                    if not w.get("word") or not w.get("standard_form"):
-                        continue
-                    w["province"]          = config["province_hint"]
-                    w["region_group"]      = config["region_group"]
-                    w["source"]            = url
-                    w["source_page"]       = ""
-                    w["verified_by"]       = config["verified_by"]
-                    w["confidence"]        = config["confidence"]
+                    if not w.get("word") or not w.get("standard_form"): continue
+                    w["province"]           = config["province_hint"]
+                    w["region_group"]       = config["region_group"]
+                    w["source"]             = url
+                    w["source_page"]        = ""
+                    w["verified_by"]        = config["verified_by"]
+                    w["confidence"]         = config["confidence"]
                     w["needs_verification"] = config["confidence"] < 0.8
                     raw_entries.append(w)
                 print(f"    → {len(words)} từ")
