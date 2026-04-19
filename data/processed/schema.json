@@ -1,0 +1,123 @@
+{
+  "_schema_version": "1.0",
+  "_description": "Schema chuẩn cho từ điển phương ngữ Bắc Trung Bộ",
+  "_fields": {
+    "word": {
+      "type": "string",
+      "required": true,
+      "description": "Từ phương ngữ gốc",
+      "example": "tru"
+    },
+    "standard_form": {
+      "type": "string",
+      "required": true,
+      "description": "Từ phổ thông tương đương",
+      "example": "trâu"
+    },
+    "province": {
+      "type": "string",
+      "required": true,
+      "enum": [
+        "Thanh Hóa",
+        "Nghệ An",
+        "Hà Tĩnh",
+        "Quảng Bình",
+        "Quảng Trị",
+        "Thừa Thiên Huế"
+      ],
+      "description": "Tỉnh sử dụng từ này phổ biến nhất"
+    },
+    "region_group": {
+      "type": "string",
+      "required": true,
+      "enum": [
+        "Thanh Hóa",
+        "Nghệ Tĩnh",
+        "Bình Trị Thiên"
+      ],
+      "description": "Nhóm vùng — dùng cho PhoBERT classifier"
+    },
+    "word_type": {
+      "type": "string",
+      "required": true,
+      "enum": [
+        "từ_vựng",
+        "ngữ_âm",
+        "thành_ngữ"
+      ],
+      "description": "Phân loại từ"
+    },
+    "meaning": {
+      "type": "string",
+      "required": true,
+      "description": "Giải thích nghĩa đầy đủ",
+      "example": "con trâu, động vật dùng để cày ruộng"
+    },
+    "example_sentence": {
+      "type": "string",
+      "required": true,
+      "description": "Câu ví dụ thực tế bằng phương ngữ",
+      "example": "con tru ăn cỏ ngoài đồng"
+    },
+    "standard_sentence": {
+      "type": "string",
+      "required": true,
+      "description": "Câu ví dụ dịch sang phổ thông",
+      "example": "con trâu ăn cỏ ngoài đồng"
+    },
+    "source": {
+      "type": "string",
+      "required": true,
+      "description": "Tên sách hoặc nguồn tham khảo",
+      "example": "Từ điển tiếng Nghệ - Nguyễn Nhã Bản"
+    },
+    "source_page": {
+      "type": "string",
+      "required": false,
+      "description": "Số trang trong sách (nếu có)",
+      "example": "tr.142"
+    },
+    "verified_by": {
+      "type": "string",
+      "required": true,
+      "enum": [
+        "sach_hoc_thuat",
+        "luan_van",
+        "cong_dong_online",
+        "da_nguon"
+      ],
+      "description": "Loại nguồn xác minh"
+    },
+    "confidence": {
+      "type": "float",
+      "required": true,
+      "range": [
+        0.0,
+        1.0
+      ],
+      "description": "Độ tin cậy: 0.9=sách, 0.8=luận văn, 0.7=cộng đồng",
+      "example": 0.9
+    },
+    "needs_verification": {
+      "type": "boolean",
+      "required": true,
+      "description": "True nếu chỉ có 1 nguồn, cần xác minh thêm",
+      "example": false
+    }
+  },
+  "_example_entry": {
+    "word": "tru",
+    "standard_form": "trâu",
+    "province": "Nghệ An",
+    "region_group": "Nghệ Tĩnh",
+    "word_type": "từ_vựng",
+    "meaning": "con trâu, động vật dùng để cày ruộng",
+    "example_sentence": "con tru ăn cỏ ngoài đồng",
+    "standard_sentence": "con trâu ăn cỏ ngoài đồng",
+    "source": "Từ điển tiếng Nghệ - Nguyễn Nhã Bản",
+    "source_page": "tr.142",
+    "verified_by": "sach_hoc_thuat",
+    "confidence": 0.9,
+    "needs_verification": false
+  }
+}
