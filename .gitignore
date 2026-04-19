@@ -1,0 +1,20 @@
+
+# API keys và credentials
+*.env
+.env
+secrets.py
+api_keys.py
+
+# ChromaDB data (quá nặng để commit)
+data/chromadb/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Colab checkpoints
+.ipynb_checkpoints/
+
+# Data thô chưa xử lý (tùy chọn)
+data/raw/*.pdf
