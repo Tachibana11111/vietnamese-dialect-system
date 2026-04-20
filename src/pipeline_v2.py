@@ -49,6 +49,73 @@ SOURCES = {
         "verified_by": "cong_dong_online",
         "confidence": 0.7,
     },
+    "nguyentienhai_hue": {
+        "urls": [
+            "https://nguyentienhai.blogspot.com/2011/01/tieu-tu-ien-phuong-ngu-hue.html",
+        ],
+        "province_hint": "Th\u1eeba Thi\u00ean Hu\u1ebf",
+        "region_group": "B\u00ecnh Tr\u1ecb Thi\u00ean",
+        "verified_by": "cong_dong_online",
+        "confidence": 0.75,
+    },
+    "nguyentienhai_quangbinh": {
+        "urls": [
+            "https://nguyentienhai.blogspot.com/2011/01/tieu-tu-dien-phuong-ngu-quang-binh.html",
+        ],
+        "province_hint": "Qu\u1ea3ng B\u00ecnh",
+        "region_group": "B\u00ecnh Tr\u1ecb Thi\u00ean",
+        "verified_by": "cong_dong_online",
+        "confidence": 0.75,
+    },
+    "vannghequangtri": {
+        "urls": [
+            "https://vannghequangtri.blogspot.com/2024/09/tu-ien-phuong-ngu-quang-tri-vo-cong.html",
+            "https://nghengu.vn/chuyen-nguoi-nghe-ke/tieng-quang-tri-2027.html",
+        ],
+        "province_hint": "Qu\u1ea3ng Tr\u1ecb",
+        "region_group": "B\u00ecnh Tr\u1ecb Thi\u00ean",
+        "verified_by": "cong_dong_online",
+        "confidence": 0.75,
+    },
+    "spiderum_hue": {
+        "urls": [
+            "https://spiderum.com/bai-dang/Huong-dan-tu-hoc-tieng-Nghe-Tinh-tu-A-Zor-Nhap-mon-phuong-ngu-mien-Trung-love-kn2",
+        ],
+        "province_hint": "Th\u1eeba Thi\u00ean Hu\u1ebf",
+        "region_group": "B\u00ecnh Tr\u1ecb Thi\u00ean",
+        "verified_by": "cong_dong_online",
+        "confidence": 0.7,
+    },
+    "nghengu_hatinh": {
+        "urls": [
+            "https://nghengu.vn/tieng-nghe-cua-toi/tu-dien-tieng-ha-tinh-995.html",
+            "http://humansofhatinh.blogspot.com/2016/01/phuong-ngu-ky-anh-tu-ien-tieng-nghe-tinh.html",
+        ],
+        "province_hint": "H\u00e0 T\u0129nh",
+        "region_group": "Ngh\u1ec7 T\u0129nh",
+        "verified_by": "cong_dong_online",
+        "confidence": 0.7,
+    },
+    "wikipedia_thanhhoa": {
+        "urls": [
+            "https://vi.wikipedia.org/wiki/Ph%C6%B0%C6%A1ng_ng%E1%BB%AF_Thanh_H%C3%B3a",
+            "https://spiderum.com/bai-dang/MI-DI-MO-MA-VIEN-THANH-HOA-17EIvue9Wauh",
+            "http://tuancongthuphong.blogspot.com/2013/10/tho-am-tho-ngu-thanh-hoa.html",
+        ],
+        "province_hint": "Thanh H\u00f3a",
+        "region_group": "Thanh H\u00f3a",
+        "verified_by": "cong_dong_online",
+        "confidence": 0.7,
+    },
+    "quangbinh_fix": {
+        "urls": [
+            "http://alomartnew.blogspot.com/2013/12/tim-hieu-ve-tieng-ia-phuong-ha-tinh.html",
+        ],
+        "province_hint": "Qu\u1ea3ng B\u00ecnh",
+        "region_group": "B\u00ecnh Tr\u1ecb Thi\u00ean",
+        "verified_by": "cong_dong_online",
+        "confidence": 0.7,
+    },
 }
 
 EXTRACT_PROMPT_V2 = (
