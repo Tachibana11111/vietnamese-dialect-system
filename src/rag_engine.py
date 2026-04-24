@@ -16,11 +16,34 @@ def init_rag():
     _embedder  = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
     print(f"RAG ready: {_words_col.count()} words, {_pairs_col.count()} pairs")
 
+
+def exact_match(query: str) -> list:
+    """Tìm từ khớp chính xác trong query từ ChromaDB metadata"""
+    words_found = []
+    # Tách query thành các token
+    tokens = query.lower().split()
+    # Get tất cả words từ collection (dùng cache nhỏ)
+    results = _words_col.get(limit=2000)
+    for meta in results["metadatas"]:
+        word = meta["word"].lower().strip()
+        if word in tokens or any(word in t for t in tokens):
+            words_found.append({
+                "word":          meta["word"],
+                "standard_form": meta["standard_form"],
+                "province":      meta["province"],
+                "score":         1.0  # exact match = score cao nhất
+            })
+    return words_found
+
+
 def retrieve_context(query, k_words=7, k_pairs=4):
     emb      = _embedder.encode([query]).tolist()
     word_res = _words_col.query(query_embeddings=emb, n_results=k_words)
     pair_res = _pairs_col.query(query_embeddings=emb, n_results=k_pairs)
+
+    # Semantic results
     words_ctx = []
+    seen_words = set()
     for m, d in zip(word_res["metadatas"][0], word_res["distances"][0]):
         words_ctx.append({
             "word":          m["word"],
@@ -28,6 +51,21 @@ def retrieve_context(query, k_words=7, k_pairs=4):
             "province":      m["province"],
             "score":         round(1 - d, 3)
         })
+        seen_words.add(m["word"].lower())
+
+    # Exact match — thêm vào đầu danh sách, ưu tiên cao nhất
+    exact = exact_match(query)
+    for w in exact:
+        if w["word"].lower() not in seen_words:
+            words_ctx.insert(0, w)
+            seen_words.add(w["word"].lower())
+        else:
+            # Nâng score của từ đã có lên 1.0
+            for wc in words_ctx:
+                if wc["word"].lower() == w["word"].lower():
+                    wc["score"] = 1.0
+                    break
+
     pairs_ctx = []
     for m, d in zip(pair_res["metadatas"][0], pair_res["distances"][0]):
         pairs_ctx.append({
@@ -37,6 +75,7 @@ def retrieve_context(query, k_words=7, k_pairs=4):
             "score":    round(1 - d, 3)
         })
     return {"words": words_ctx, "pairs": pairs_ctx}
+
 
 def _format_context(context):
     w_lines = []
