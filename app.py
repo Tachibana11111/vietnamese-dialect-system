@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 # ============================================================
 # CONFIG
 # ============================================================
-CHROMA_PATH = "./data/chromadb"
+CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
 sys.path.append("./src")
 
 st.set_page_config(
