@@ -288,3 +288,124 @@ def run_pipeline_v2(sources=SOURCES, delay=3.0):
                 print(f"    → {len(words)} từ")
                 time.sleep(delay)
     return raw_entries
+
+# ============================================================
+# PAIRS PIPELINE — Thu thập cặp câu song ngữ
+# ============================================================
+PAIRS_PROMPT = (
+    "Bạn là chuyên gia ngôn ngữ học phương ngữ Việt Nam Bắc Trung Bộ.\n\n"
+    "Từ đoạn văn bản dưới đây, hãy trích xuất TẤT CẢ các CẶP CÂU song ngữ:\n"
+    "- Câu bằng phương ngữ địa phương\n"
+    "- Câu dịch sang tiếng phổ thông tương đương\n\n"
+    "TIÊU CHÍ CHẤP NHẬN:\n"
+    "- Phải là câu hoàn chỉnh (có chủ ngữ + vị ngữ)\n"
+    "- Câu phương ngữ phải chứa ít nhất 1 từ địa phương rõ ràng\n"
+    "- Cặp câu phải tương đương về nghĩa\n\n"
+    "TIÊU CHÍ LOẠI BỎ:\n"
+    "- Câu quá ngắn (dưới 3 từ)\n"
+    "- Câu phổ thông thuần túy không có từ phương ngữ\n\n"
+    'Trả về JSON array, mỗi phần tử:\n'
+    '{{"dialect_sentence": "câu phương ngữ", '
+    '"standard_sentence": "câu phổ thông", '
+    '"province": "tỉnh: Thanh Hóa/Nghệ An/Hà Tĩnh/Quảng Bình/Quảng Trị/Thừa Thiên Huế"}}\n\n'
+    "Nếu không có cặp câu nào, trả về [].\n"
+    "CHỈ trả về JSON array, không giải thích, không markdown.\n\n"
+    "VĂN BẢN:\n{text}"
+)
+
+PAIRS_OUTPUT = "/content/vietnamese-dialect-system/data/processed/dialect_pairs.json"
+
+VALID_PROVINCES = [
+    "Thanh Hóa", "Nghệ An", "Hà Tĩnh",
+    "Quảng Bình", "Quảng Trị", "Thừa Thiên Huế"
+]
+
+def extract_pairs(text, max_chars=3000):
+    text = text[:max_chars]
+    models = ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.0-flash"]
+    for model in models:
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    contents=PAIRS_PROMPT.format(text=text)
+                )
+                raw = response.text.strip()
+                raw = re.sub(r"```json|```", "", raw).strip()
+                return json.loads(raw)
+            except Exception as e:
+                err = str(e)
+                if "429" in err:
+                    if attempt < 2:
+                        wait = (attempt + 1) * 15
+                        print(f"  Rate limit {model}, chờ {wait}s...")
+                        time.sleep(wait)
+                    else:
+                        print(f"  Hết quota {model}, thử model khác...")
+                        break
+                else:
+                    print(f"  Lỗi: {e}")
+                    return []
+    print("  Hết quota hôm nay — dừng lại")
+    return None
+
+
+def save_pairs(pairs, output_path=PAIRS_OUTPUT):
+    seen = set()
+    unique = []
+    for p in pairs:
+        key = p["dialect_sentence"].strip().lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(p)
+    existing = []
+    if os.path.exists(output_path):
+        with open(output_path, encoding="utf-8") as f:
+            existing = json.load(f)
+    existing_keys = {e["dialect_sentence"].strip().lower() for e in existing}
+    new_pairs = [p for p in unique if p["dialect_sentence"].strip().lower() not in existing_keys]
+    combined = existing + new_pairs
+    print(f"New: {len(new_pairs)} | Existing: {len(existing)} | Total: {len(combined)}")
+    prov_count = {}
+    for p in combined:
+        pv = p.get("province", "unknown")
+        prov_count[pv] = prov_count.get(pv, 0) + 1
+    print("Phân bố tỉnh:")
+    for pv, c in sorted(prov_count.items(), key=lambda x: -x[1]):
+        print(f"  {pv:<22} {c:>3}  {chr(9608)*(c//5+1)}")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(combined, f, ensure_ascii=False, indent=2)
+    print(f"Đã lưu {len(combined)} cặp câu → {output_path}")
+    return combined
+
+
+def run_pairs_pipeline(sources, delay=4.0):
+    all_pairs = []
+    for source_name, config in sources.items():
+        print(f"\n== Nguồn: {source_name} ==")
+        for url in config["urls"]:
+            print(f"  Crawling: {url}")
+            text = crawl_url(url)
+            if not text:
+                print("  Không lấy được nội dung")
+                continue
+            print(f"  {len(text)} ký tự")
+            chunks = [text[i:i+3000] for i in range(0, min(len(text), 9000), 3000)]
+            for i, chunk in enumerate(chunks):
+                print(f"  Chunk {i+1}/{len(chunks)}...")
+                pairs = extract_pairs(chunk)
+                if pairs is None:
+                    print("  Dừng — hết quota")
+                    return all_pairs
+                for p in pairs:
+                    if (p.get("dialect_sentence") and
+                            p.get("standard_sentence") and
+                            p["dialect_sentence"] != p["standard_sentence"]):
+                        p["source"] = url
+                        if p.get("province") not in VALID_PROVINCES:
+                            p["province"] = config["province_hint"]
+                        all_pairs.append(p)
+                print(f"    → {len(pairs)} cặp câu")
+                time.sleep(delay)
+    return all_pairs
