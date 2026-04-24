@@ -1,4 +1,10 @@
 {
   "spreadsheet_id": "1Mi7IGuJb8eqksjgKfu3nSMsSuxS4r11oTvD2Br962VE",
-  "sheet_name": "dialect_data"
+  "sheet_name": "dialect_data",
+  "chromadb_path": "/content/vietnamese-dialect-system/data/chromadb",
+  "words_collection": "dialect_words",
+  "pairs_collection": "dialect_pairs",
+  "embedding_model": "paraphrase-multilingual-MiniLM-L12-v2",
+  "total_words": 1038,
+  "total_pairs": 658
 }

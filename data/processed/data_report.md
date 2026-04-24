@@ -1,34 +1,37 @@
-# Data Collection Report
-Generated: Phase 1 — Tuần 2
+# Data Report — Phase 2 Complete
 
-## Tổng quan
-- Tổng số từ: 1038
-- Train/Val/Test: 836/101/101
+## Dataset Summary
+- Từ vựng   : 1038 từ (6 tỉnh)
+- Cặp câu   : 658 cặp (6 tỉnh)
+- ChromaDB  : 2 collections production-ready
 
-## Phân bố theo tỉnh
-- Nghệ An: 351 từ (182 có câu ví dụ)
-- Quảng Bình: 238 từ (55 có câu ví dụ)
-- Quảng Trị: 236 từ (209 có câu ví dụ)
-- Hà Tĩnh: 87 từ (50 có câu ví dụ)
-- Thừa Thiên Huế: 86 từ (49 có câu ví dụ)
-- Thanh Hóa: 40 từ (40 có câu ví dụ)
+## Phân bố từ vựng theo tỉnh
+| Tỉnh | Số từ |
+|------|-------|
+| Nghệ An | 351 |
+| Quảng Bình | 238 |
+| Quảng Trị | 236 |
+| Hà Tĩnh | 87 |
+| Thừa Thiên Huế | 86 |
+| Thanh Hóa | 40 |
 
-## Nguồn dữ liệu
-- nghengu.vn (từ điển tiếng Nghệ)
-- xomaonguyen.blogspot.com (từ điển văn vần)
-- nguyentienhai.blogspot.com (từ điển Huế, Quảng Bình)
-- vannghequangtri.blogspot.com (từ điển Quảng Trị)
-- humansofhatinh.blogspot.com (phương ngữ Hà Tĩnh)
-- vi.wikipedia.org (phương ngữ Thanh Hóa)
-- m0nst3rbee.blogspot.com (từ điển Quảng Bình)
-- baohatinh.vn, baothuathienhue.vn (báo địa phương)
+## Phân bố cặp câu theo tỉnh
+| Tỉnh | Số cặp |
+|------|--------|
+| Nghệ An | 329 |
+| Quảng Bình | 117 |
+| Quảng Trị | 63 |
+| Hà Tĩnh | 57 |
+| Thừa Thiên Huế | 56 |
+| Thanh Hóa | 36 |
 
-## Quy trình xác minh
-- Tầng 1: Nguồn học thuật (sách, luận văn) — confidence 0.9
-- Tầng 2: Blog/trang chuyên về phương ngữ — confidence 0.75
-- Tầng 3: Cộng đồng online — confidence 0.7
-- Từ cần xác minh thêm: 1038
+## ChromaDB
+- Model embedding : paraphrase-multilingual-MiniLM-L12-v2
+- Words collection: 1038 entries
+- Pairs collection: 658 entries
+- Retrieve test   : PASS (5/5 queries)
 
 ## Ghi chú
-- Tập test đã được tách riêng và KHÔNG được dùng để train
-- Mất cân bằng Thanh Hóa (40 từ) do thiếu nguồn online — xử lý bằng class weighting khi train
+- 572/1038 từ còn needs_verification=True (nguồn online đơn lẻ)
+- Mất cân bằng Thanh Hóa (40 từ) — xử lý bằng class weighting khi train PhoBERT
+- Tập test đã lock tại data/processed/test.json
