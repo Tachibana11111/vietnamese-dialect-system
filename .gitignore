@@ -18,3 +18,7 @@ __pycache__/
 
 # Data thô chưa xử lý (tùy chọn)
 data/raw/*.pdf
+
+# Model weights - quá lớn cho GitHub
+data/*.pt
+data/*.bin
