@@ -409,3 +409,75 @@ def run_pairs_pipeline(sources, delay=4.0):
                 print(f"    → {len(pairs)} cặp câu")
                 time.sleep(delay)
     return all_pairs
+
+
+# ============================================================
+# UNIFIED LLM CALLER — Groq primary, Gemini fallback
+# ============================================================
+from groq import Groq
+
+def get_groq_client():
+    try:
+        from google.colab import userdata
+        key = userdata.get("GROQ_API_KEY")
+        if key:
+            return Groq(api_key=key)
+    except:
+        pass
+    return None
+
+_groq_client = get_groq_client()
+
+def call_llm(prompt: str) -> str:
+    global _groq_client
+    # Tầng 1: Groq
+    if _groq_client:
+        try:
+            response = _groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=2000,
+                temperature=0.1
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            if "429" in str(e) or "rate" in str(e).lower():
+                print("  Groq rate limit, thử Gemini...")
+            else:
+                print(f"  Groq lỗi: {e}")
+    # Tầng 2: Gemini fallback
+    for model in ["gemini-2.5-flash-lite", "gemini-2.0-flash-lite", "gemini-2.0-flash"]:
+        for attempt in range(2):
+            try:
+                response = client.models.generate_content(model=model, contents=prompt)
+                return response.text
+            except Exception as e:
+                if "429" in str(e):
+                    if attempt < 1:
+                        print(f"  Gemini {model} rate limit, chờ 15s...")
+                        time.sleep(15)
+                    else:
+                        break
+                else:
+                    break
+    print("  Hết quota tất cả — dừng")
+    return None
+
+
+def extract_words_v2(text, max_chars=3000):
+    text = text[:max_chars]
+    raw = call_llm(EXTRACT_PROMPT_V2.format(text=text))
+    if raw is None: return None
+    try:
+        raw = re.sub(r"```json|```", "", raw).strip()
+        return json.loads(raw)
+    except: return []
+
+def extract_pairs(text, max_chars=3000):
+    text = text[:max_chars]
+    raw = call_llm(PAIRS_PROMPT.format(text=text))
+    if raw is None: return None
+    try:
+        raw = re.sub(r"```json|```", "", raw).strip()
+        return json.loads(raw)
+    except: return []
