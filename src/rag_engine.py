@@ -54,16 +54,40 @@ def _format_context(context):
     return "\n".join(w_lines), "\n".join(p_lines)
 
 RAG_PROMPT = (
-    "Ban la chuyen gia dich thuat phuong ngu Bac Trung Bo Viet Nam.\n"
-    "NGUYEN TAC:\n"
-    "- Uu tien TU DIEN duoc cung cap hon kien thuc cua ban\n"
-    "- Neu cau dau vao la PHUONG NGU -> dich sang pho thong\n"
-    "- Neu cau dau vao la PHO THONG -> dich sang phuong ngu vung {province}\n\n"
-    "TU DIEN:\n{words_context}\n\n"
-    "CAU MAU:\n{pairs_context}\n\n"
-    "CAU CAN DICH: {query}\n\n"
-    '{"translation": "ban dich", "dialect_words": ["tu: nghia (tinh)"], "province_hint": "tinh", "confidence": 0.0}'
+    "You are a dialect translation expert for North Central Vietnam.\n"
+    "STRICT RULES:\n"
+    "1. You MUST return ONLY a JSON object, no explanation, no extra text\n"
+    "2. Use the dictionary below as primary source\n"
+    "3. If input is dialect -> translate to standard Vietnamese\n"
+    "4. If input is standard Vietnamese -> translate to dialect of {province}\n\n"
+    "DICTIONARY:\n{words_context}\n\n"
+    "EXAMPLE SENTENCES:\n{pairs_context}\n\n"
+    "INPUT: {query}\n\n"
+    "Return ONLY this JSON, nothing else:\n"
+    '{{"translation":"...","dialect_words":["word:meaning(province)"],"province_hint":"...","confidence":0.0}}'
 )
+
+def extract_json(text):
+    try:
+        clean = re.sub(r"```json|```", "", text).strip()
+        return json.loads(clean)
+    except:
+        pass
+    match = re.search(r'\{[^{}]*"translation"[^{}]*}', text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group())
+        except:
+            pass
+    result = {}
+    t = re.search(r'"translation"\s*:\s*"([^"]+)"', text)
+    p = re.search(r'"province_hint"\s*:\s*"([^"]+)"', text)
+    c = re.search(r'"confidence"\s*:\s*([0-9.]+)', text)
+    if t: result["translation"]    = t.group(1)
+    if p: result["province_hint"]  = p.group(1)
+    if c: result["confidence"]     = float(c.group(1))
+    result["dialect_words"] = []
+    return result if result else {"translation": text, "error": "extract failed"}
 
 def translate(query, province="Nghe An"):
     from pipeline_v2 import call_llm
@@ -78,14 +102,10 @@ def translate(query, province="Nghe An"):
     raw = call_llm(prompt)
     if not raw:
         return {"error": "LLM khong phan hoi"}
-    try:
-        raw = re.sub(r"```json|```", "", raw).strip()
-        result = json.loads(raw)
-        result["retrieved_words"] = ctx["words"]
-        result["retrieved_pairs"] = ctx["pairs"]
-        return result
-    except:
-        return {"translation": raw, "error": "parse JSON that bai"}
+    result = extract_json(raw)
+    result["retrieved_words"] = ctx["words"]
+    result["retrieved_pairs"] = ctx["pairs"]
+    return result
 
 def lookup(word):
     emb = _embedder.encode([word]).tolist()
