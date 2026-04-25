@@ -41,19 +41,6 @@ def load_rag():
 
 @st.cache_resource
 def load_classifier():
-    try:
-        import torch
-        from transformers import AutoTokenizer, AutoModelForSequenceClassification
-        MODEL_NAME = "vinai/phobert-base"
-        tokenizer  = AutoTokenizer.from_pretrained(MODEL_NAME)
-        model      = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=3)
-        ckpt_path  = "./data/classifier_best.pt"
-        if os.path.exists(ckpt_path):
-            model.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
-            model.eval()
-            return tokenizer, model
-    except:
-        pass
     return None, None
 
 GROUP_NAMES = {0: "Thanh Hóa", 1: "Nghệ Tĩnh", 2: "Bình Trị Thiên"}
