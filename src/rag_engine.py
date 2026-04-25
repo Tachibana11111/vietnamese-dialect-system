@@ -2,7 +2,8 @@ import json, re, os
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-CHROMA_PATH = "/content/vietnamese-dialect-system/data/chromadb"
+#CHROMA_PATH = "/content/vietnamese-dialect-system/data/chromadb"
+CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
 
 _words_col = None
 _pairs_col = None
