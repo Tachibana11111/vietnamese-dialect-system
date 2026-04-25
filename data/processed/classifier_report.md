@@ -1,8 +1,8 @@
 # PhoBERT Classifier Report
 
 ## Kết quả
-- Val Accuracy  : 0.707
-- Test Accuracy : 0.664
+- Val Accuracy  : 0.750
+- Test Accuracy : 0.733
 - Số nhóm       : 3 (Thanh Hóa / Nghệ Tĩnh / Bình Trị Thiên)
 - Model         : vinai/phobert-base
 - Epochs        : 10
