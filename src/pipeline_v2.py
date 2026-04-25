@@ -2,7 +2,7 @@ import requests, json, time, re, os
 from bs4 import BeautifulSoup
 import trafilatura
 from google import genai
-from google.colab import userdata
+#from google.colab import userdata
 
 GEMINI_API_KEY = userdata.get("GEMINI_API_KEY")
 client = genai.Client(api_key=GEMINI_API_KEY)
