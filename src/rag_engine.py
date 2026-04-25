@@ -12,8 +12,10 @@ _embedder  = None
 def init_rag():
     global _words_col, _pairs_col, _embedder
     client = chromadb.PersistentClient(path=CHROMA_PATH)
-    _words_col = client.get_collection("dialect_words")
-    _pairs_col = client.get_collection("dialect_pairs")
+    _words_col = client.get_or_create_collection("dialect_words")
+    _pairs_col = client.get_or_create_collection("dialect_pairs")
+    if _words_col.count() == 0:
+        print("⚠️ Chưa có dữ liệu trong ChromaDB")
     _embedder  = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
     print(f"RAG ready: {_words_col.count()} words, {_pairs_col.count()} pairs")
 
