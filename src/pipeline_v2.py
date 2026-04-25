@@ -417,13 +417,13 @@ def run_pairs_pipeline(sources, delay=4.0):
 from groq import Groq
 
 def get_groq_client():
-    try:
-        from google.colab import userdata
-        key = userdata.get("GROQ_API_KEY")
-        if key:
+    import os
+    key = os.environ.get("GROQ_API_KEY", "")
+    if key:
+        try:
             return Groq(api_key=key)
-    except:
-        pass
+        except:
+            pass
     return None
 
 _groq_client = get_groq_client()
